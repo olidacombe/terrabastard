@@ -2,10 +2,10 @@ use eyre::Result;
 use std::{collections::HashSet, path::PathBuf};
 use terrabastard::{
     cli::{self, Command},
-    terraform::{self, strings},
+    terraform::{self},
     walk::{self, string_repetitions},
 };
-use tracing::{debug, error, info};
+use tracing::{debug, error};
 
 fn init_tracing() {
     // install global collector configured based on RUST_LOG env var.

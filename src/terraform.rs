@@ -91,7 +91,7 @@ pub fn strings(body: &hcl::Body) -> Vec<(String, String)> {
                 Expression::Object(o) => {
                     ret.append(&mut string_pairs_key_prepend(
                         key.as_str(),
-                        object_strings(&o),
+                        object_strings(o),
                     ));
                 }
                 _ => {}
@@ -206,7 +206,7 @@ mod test {
         if let Expression::Object(obj) = expr {
             return obj;
         }
-        panic! {"Bad test construction, expression should be Object variant {:?}", expr};
+        panic! {"Bad test construction, expression should be Object variant {expr:?}"};
     }
 
     #[test]

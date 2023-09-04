@@ -95,13 +95,11 @@ fn string_repititions_accross_roots(
 
     // TODO something less O(N)-y
     let mut prune_by_repetition_count_from: Option<usize> = None;
-    let mut idx = 0;
-    for v in ret.values() {
+    for (idx, v) in ret.values().enumerate() {
         if v.len() < min_repetitions {
             prune_by_repetition_count_from = Some(idx);
             break;
         }
-        idx += 1;
     }
     if let Some(idx) = prune_by_repetition_count_from {
         ret.truncate(idx);
@@ -226,7 +224,7 @@ mod test {
                     ":module.stuff.is",
                 ],
             }
-        )
+        );
     }
 
     #[test]
@@ -321,6 +319,6 @@ mod test {
                     "/tokyo:resource.thing.s.were",
                 ],
             }
-        )
+        );
     }
 }
