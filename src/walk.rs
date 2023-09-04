@@ -131,7 +131,7 @@ mod test {
                 [$(($k.to_string(), string_reps!(@vals $root; $vals))),*].into()
             }};
             (@vals $root:expr; [$($v:expr),+ $(,)?]) => {{
-                [$(format!("{}:{}", $root.display(), $v)),*].into()
+                [$(format!("{}{}", $root.display(), $v)),*].into()
             }};
         }
 
@@ -167,16 +167,16 @@ mod test {
             string_reps! {
                 temp_dir.path();
                 "repetitive" => [
-                    "module.stuff.in.sanely",
-                    "module.stuff.gets",
-                    "module.stuff.is",
+                    ":module.stuff.in.sanely",
+                    ":module.stuff.gets",
+                    ":module.stuff.is",
                 ],
                 "wild" => [
-                    "resource.thing.s.got",
-                    "module.stuff.in.the",
+                    ":resource.thing.s.got",
+                    ":module.stuff.in.the",
                 ],
                 "weird" => [
-                    "resource.thing.s.were",
+                    ":resource.thing.s.were",
                 ],
             }
         );
@@ -186,16 +186,16 @@ mod test {
             string_reps! {
                 temp_dir.path();
                 "repetitive" => [
-                    "module.stuff.in.sanely",
-                    "module.stuff.gets",
-                    "module.stuff.is",
+                    ":module.stuff.in.sanely",
+                    ":module.stuff.gets",
+                    ":module.stuff.is",
                 ],
                 "wild" => [
-                    "resource.thing.s.got",
-                    "module.stuff.in.the",
+                    ":resource.thing.s.got",
+                    ":module.stuff.in.the",
                 ],
                 "weird" => [
-                    "resource.thing.s.were",
+                    ":resource.thing.s.were",
                 ],
             }
         );
@@ -205,13 +205,13 @@ mod test {
             string_reps! {
                 temp_dir.path();
                 "repetitive" => [
-                    "module.stuff.in.sanely",
-                    "module.stuff.gets",
-                    "module.stuff.is",
+                    ":module.stuff.in.sanely",
+                    ":module.stuff.gets",
+                    ":module.stuff.is",
                 ],
                 "wild" => [
-                    "resource.thing.s.got",
-                    "module.stuff.in.the",
+                    ":resource.thing.s.got",
+                    ":module.stuff.in.the",
                 ],
             }
         );
@@ -221,9 +221,9 @@ mod test {
             string_reps! {
                 temp_dir.path();
                 "repetitive" => [
-                    "module.stuff.in.sanely",
-                    "module.stuff.gets",
-                    "module.stuff.is",
+                    ":module.stuff.in.sanely",
+                    ":module.stuff.gets",
+                    ":module.stuff.is",
                 ],
             }
         )
@@ -303,22 +303,22 @@ mod test {
             string_reps! {
                 temp_dir.path();
                 "repetitive" => [
-                    "london:module.stuff.in.sanely",
-                    "london:module.stuff.gets",
-                    "london:module.stuff.is",
-                    "tokyo:module.stuff.in.sanely",
-                    "tokyo:module.stuff.gets",
-                    "tokyo:module.stuff.is",
+                    "/london:module.stuff.in.sanely",
+                    "/london:module.stuff.gets",
+                    "/london:module.stuff.is",
+                    "/tokyo:module.stuff.in.sanely",
+                    "/tokyo:module.stuff.gets",
+                    "/tokyo:module.stuff.is",
                 ],
                 "wild" => [
-                    "london:resource.thing.s.got",
-                    "london:module.stuff.in.the",
-                    "tokyo:resource.thing.s.got",
-                    "tokyo:module.stuff.in.the",
+                    "/london:resource.thing.s.got",
+                    "/london:module.stuff.in.the",
+                    "/tokyo:resource.thing.s.got",
+                    "/tokyo:module.stuff.in.the",
                 ],
                 "weird" => [
-                    "london:resource.thing.s.were",
-                    "tokyo:resource.thing.s.were",
+                    "/london:resource.thing.s.were",
+                    "/tokyo:resource.thing.s.were",
                 ],
             }
         )
