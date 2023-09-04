@@ -1,7 +1,7 @@
 use eyre::Result;
 use std::{collections::HashSet, path::PathBuf};
 use terrabastard::{
-    cli::{self, Command},
+    cli::{self, Command, PlagueArgs},
     terraform::{self},
     walk::{self, string_repetitions},
 };
@@ -35,10 +35,10 @@ fn main() -> Result<()> {
                 }
             }
         }
-        Command::Plague => {
+        Command::Plague(PlagueArgs { min_repetitions }) => {
             println!(
                 "{}",
-                serde_json::to_string_pretty(&string_repetitions(&args.path, 2))
+                serde_json::to_string_pretty(&string_repetitions(&args.path, min_repetitions))
                     .unwrap_or("{}".to_string())
             );
         }
