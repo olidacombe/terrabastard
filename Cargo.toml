@@ -1,0 +1,32 @@
+[package]
+authors = ["Oli Dacombe <olidacombe@gmail.com>"]
+name = "terrabastard"
+description = "Hunts Malodorous Terraform"
+documentation = "https://docs.rs/terrabastard/latest/terrabastard/"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/olidacombe/terrabastard"
+rust-version = "1.72.0"
+
+[dependencies]
+clap = { version = "4.4.1", features = ["derive", "string"] }
+eyre = "0.6.8"
+hcl-rs = "0.16.4"
+ignore = "0.4.20"
+indexmap = { version = "2.0.0", features = ["serde"] }
+serde = { version = "1.0.188", features = ["derive"] }
+serde_json = "1.0.105"
+
+
+tracing = "0.1.37"
+tracing-subscriber = "0.3.17"
+
+[dev-dependencies]
+test-files = "0.1.0"
+[dev-dependencies.cargo-husky]
+
+
+version = "1.5.0"
+default-features = false
+features = ["user-hooks"]
