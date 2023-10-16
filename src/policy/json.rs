@@ -18,7 +18,7 @@ pub enum Effect {
     Deny,
 }
 
-#[derive(Clone, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Clone, Deserialize, Display, PartialEq, Eq, Hash)]
 pub enum ConditionOperator {
     NumericLessThanEquals,
     StringLike,
@@ -75,8 +75,16 @@ impl From<Statement> for Block {
         ));
         if let Some(condition) = statement.condition {
             for (operator, operands) in condition {
-                // TODO pick up here
-                builder = builder.add_block(Block::builder("condition").build());
+                for (variable, values) in operands.0 {
+                    let values: Vec<String> = values.into_iter().collect();
+                    builder = builder.add_block(
+                        Block::builder("condition")
+                            .add_attribute(("test", operator.to_string()))
+                            .add_attribute(("variable", variable))
+                            .add_attribute(("values", values))
+                            .build(),
+                    );
+                }
             }
         }
         builder.build()
