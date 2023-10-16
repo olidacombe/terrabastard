@@ -1,0 +1,37 @@
+---
+source: src/policy/json.rs
+expression: "hcl::to_string(&hcl_policy)?"
+---
+resource "aws_iam_policy_document" "example_2" {
+  version = "2012-10-17"
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "ec2:DescribeInstances",
+      "ec2:DescribeSecurityGroups",
+      "ec2:DescribeSecurityGroupReferences",
+      "ec2:DescribeStaleSecurityGroups"
+    ]
+    resources = [
+      "*"
+    ]
+  }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "ec2:AuthorizeSecurityGroupEgress",
+      "ec2:AuthorizeSecurityGroupIngress",
+      "ec2:RevokeSecurityGroupEgress",
+      "ec2:RevokeSecurityGroupIngress",
+      "ec2:StartInstances",
+      "ec2:StopInstances"
+    ]
+    resources = [
+      "arn:aws:ec2:*:*:instance/i-instance-id",
+      "arn:aws:ec2:*:*:security-group/sg-security-group-id"
+    ]
+  }
+}
+
