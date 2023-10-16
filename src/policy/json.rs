@@ -119,7 +119,7 @@ mod test {
     use eyre::Result;
 
     #[test]
-    fn deserialize_example_1() -> Result<()> {
+    fn example_1() -> Result<()> {
         let data = r#"{
             "Version": "2012-10-17",
             "Statement": {
@@ -135,13 +135,16 @@ mod test {
             }
         }"#;
 
-        let _: PolicyDocument = serde_json::from_str(data)?;
+        let json_policy: PolicyDocument = serde_json::from_str(data)?;
+        let hcl_policy = json_policy.to_hcl("example_1");
+
+        insta::assert_snapshot!(hcl::to_string(&hcl_policy)?);
 
         Ok(())
     }
 
     #[test]
-    fn deserialize_example_2() -> Result<()> {
+    fn example_2() -> Result<()> {
         let data = r#"{
           "Version": "2012-10-17",
           "Statement": [
@@ -173,13 +176,16 @@ mod test {
           ]
         }"#;
 
-        let _: PolicyDocument = serde_json::from_str(data)?;
+        let json_policy: PolicyDocument = serde_json::from_str(data)?;
+        let hcl_policy = json_policy.to_hcl("example_2");
+
+        insta::assert_snapshot!(hcl::to_string(&hcl_policy)?);
 
         Ok(())
     }
 
     #[test]
-    fn to_hcl_example_1() -> Result<()> {
+    fn example_3() -> Result<()> {
         let data = r#"{
             "Version": "2012-10-17",
             "Statement": {
@@ -196,7 +202,7 @@ mod test {
         }"#;
 
         let json_policy: PolicyDocument = serde_json::from_str(data)?;
-        let hcl_policy = json_policy.to_hcl("example_1");
+        let hcl_policy = json_policy.to_hcl("example_3");
 
         insta::assert_snapshot!(hcl::to_string(&hcl_policy)?);
 
