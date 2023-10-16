@@ -4,11 +4,13 @@ use hcl::Block;
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Display, Serialize)]
 pub enum PolicyVersion {
     #[serde(rename = "2008-10-17")]
+    #[strum(serialize = "2008-10-17")]
     V20081017,
     #[serde(rename = "2012-10-17")]
+    #[strum(serialize = "2012-10-17")]
     V20121017,
 }
 
@@ -102,7 +104,8 @@ impl PolicyDocument {
     pub fn to_hcl(&self, name: &str) -> Block {
         let mut builder = Block::builder("resource")
             .add_label("aws_iam_policy_document")
-            .add_label(name);
+            .add_label(name)
+            .add_attribute(("version", format!("{}", &self.version)));
         for statement in self.statement.clone() {
             builder = builder.add_block(Block::from(statement));
         }
@@ -194,23 +197,6 @@ mod test {
 
         let json_policy: PolicyDocument = serde_json::from_str(data)?;
         let hcl_policy = json_policy.to_hcl("example_1");
-
-        let expected = r#"
-            resource "aws_iam_policy_document" "example_1" {
-                statement {
-                    sid = "AllowRemoveMfaOnlyIfRecentMfa"
-                    effect = "Allow"
-                    actions = ["iam:DeactivateMFADevice"]
-                    resources = ["arn:aws:iam::*:user/${aws:username}"]
-                    condition {
-                        test = "NumericLessThanEquals"
-                        variable = "aws:MultiFactorAuthAge"
-                        values = ["3600"]
-                    }
-                }
-            }
-        "#
-        .trim_start();
 
         insta::assert_snapshot!(hcl::to_string(&hcl_policy)?);
 
