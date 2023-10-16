@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
 use hcl::Block;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use strum::Display;
 
 #[derive(Deserialize)]
 pub enum PolicyVersion {
@@ -11,18 +12,10 @@ pub enum PolicyVersion {
     V20121017,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Display)]
 pub enum Effect {
     Allow,
     Deny,
-}
-
-// TODO `NotAction`
-#[derive(Clone, Deserialize)]
-#[serde(untagged)]
-pub enum Action {
-    Mono(String),
-    Poly(Vec<String>),
 }
 
 #[derive(Clone, Deserialize, PartialEq, Eq, Hash)]
@@ -31,7 +24,7 @@ pub enum ConditionOperator {
     StringLike,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Serialize)]
 #[serde(untagged)]
 pub enum OneOrMany<T>
 where
@@ -62,17 +55,17 @@ pub struct ConditionOperands(HashMap<String, OneOrMany<String>>);
 pub struct Statement {
     sid: Option<String>,
     effect: Effect,
-    action: Action,
+    action: OneOrMany<String>,
     resource: OneOrMany<String>,
     condition: Option<HashMap<ConditionOperator, ConditionOperands>>,
 }
 
 impl From<Statement> for Block {
     fn from(statement: Statement) -> Self {
+        let actions: Vec<String> = statement.action.into_iter().collect();
         let mut builder = Block::builder("statement")
-            // .add_attribute(("effect", statement.effect))
-            // .add_attribute(("action", statement.action));
-            ;
+            .add_attribute(("effect", statement.effect.to_string()))
+            .add_attribute(("actions", actions));
         if let Some(sid) = statement.sid {
             builder = builder.add_attribute(("sid", sid));
         }
@@ -199,7 +192,7 @@ mod test {
                 statement {
                     sid = "AllowRemoveMfaOnlyIfRecentMfa"
                     effect = "Allow"
-                    actions = ["iam:DeactivateMFADevice"o
+                    actions = ["iam:DeactivateMFADevice"]
                     resources = ["arn:aws:iam::*:user/${aws:username}"]
                     condition {
                         test = "NumericLessThanEquals"
@@ -211,9 +204,7 @@ mod test {
         "#
         .trim_start();
 
-        let serialized = hcl::to_string(&hcl_policy)?;
-
-        assert_eq!(serialized, expected);
+        insta::assert_snapshot!(hcl::to_string(&hcl_policy)?);
 
         Ok(())
     }
