@@ -39,7 +39,7 @@ fn main() -> Result<()> {
         Command::Plague(PathArg { path }) => {
             println!(
                 "{}",
-                serde_json::to_string_pretty(&string_repetitions(&path, 2))
+                serde_json::to_string_pretty(&string_repetitions(path, 2))
                     .unwrap_or("{}".to_string())
             );
         }
