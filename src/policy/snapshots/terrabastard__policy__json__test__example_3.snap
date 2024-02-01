@@ -1,0 +1,27 @@
+---
+source: src/policy/json.rs
+expression: "hcl::to_string(&hcl_policy)?"
+---
+resource "aws_iam_policy_document" "example_3" {
+  version = "2012-10-17"
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "iam:DeactivateMFADevice"
+    ]
+    sid = "AllowRemoveMfaOnlyIfRecentMfa"
+    resources = [
+      "arn:aws:iam::*:user/$${aws:username}"
+    ]
+
+    condition {
+      test = "NumericLessThanEquals"
+      variable = "aws:MultiFactorAuthAge"
+      values = [
+        "3600"
+      ]
+    }
+  }
+}
+
