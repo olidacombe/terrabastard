@@ -208,4 +208,35 @@ mod test {
 
         Ok(())
     }
+
+    #[test]
+    fn example_4() -> Result<()> {
+        let data = r#"{
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Sid": "",
+                    "Effect": "Allow",
+                    "Principal": {
+                        "Federated": "arn:aws:iam::${local.account_id}:oidc-provider/${module.eks.oidc_provider}"
+                    },
+                    "Action": "sts:AssumeRoleWithWebIdentity",
+                    "Condition": {
+                        "StringEquals": {
+                            "${module.eks.oidc_provider}:sub": "system:serviceaccount:teleport:teleport-kube-agent",
+                            "${module.eks.oidc_provider}:aud": "sts.amazonaws.com"
+                        }
+                    }
+                }
+            ]
+        }
+        "#;
+
+        let json_policy: PolicyDocument = serde_json::from_str(data)?;
+        let hcl_policy = json_policy.to_hcl("example_4");
+
+        insta::assert_snapshot!(hcl::to_string(&hcl_policy)?);
+
+        Ok(())
+    }
 }
