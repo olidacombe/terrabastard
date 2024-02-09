@@ -58,7 +58,7 @@ pub struct Statement {
     sid: Option<String>,
     effect: Effect,
     action: OneOrMany<String>,
-    resource: OneOrMany<String>,
+    resource: Option<OneOrMany<String>>,
     condition: Option<HashMap<ConditionOperator, ConditionOperands>>,
 }
 
@@ -71,10 +71,10 @@ impl From<Statement> for Block {
         if let Some(sid) = statement.sid {
             builder = builder.add_attribute(("sid", sid));
         }
-        builder = builder.add_attribute((
-            "resources",
-            statement.resource.into_iter().collect::<Vec<String>>(),
-        ));
+        if let Some(resources) = statement.resource {
+            builder = builder
+                .add_attribute(("resources", resources.into_iter().collect::<Vec<String>>()));
+        }
         if let Some(condition) = statement.condition {
             for (operator, operands) in condition {
                 for (variable, values) in operands.0 {
@@ -213,24 +213,18 @@ mod test {
     fn example_4() -> Result<()> {
         let data = r#"{
             "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Sid": "",
-                    "Effect": "Allow",
-                    "Principal": {
-                        "Federated": "arn:aws:iam::${local.account_id}:oidc-provider/${module.eks.oidc_provider}"
-                    },
-                    "Action": "sts:AssumeRoleWithWebIdentity",
-                    "Condition": {
-                        "StringEquals": {
-                            "${module.eks.oidc_provider}:sub": "system:serviceaccount:teleport:teleport-kube-agent",
-                            "${module.eks.oidc_provider}:aud": "sts.amazonaws.com"
-                        }
-                    }
+            "Statement": {
+                "Sid": "AllowRemoveMfaOnlyIfRecentMfa",
+                "Effect": "Allow",
+                "Action": [
+                    "iam:DeactivateMFADevice"
+                ],
+                "Resource": "arn:aws:iam::*:user/${aws:username}",
+                "Condition": {
+                    "NumericLessThanEquals": {"aws:MultiFactorAuthAge": "3600"}
                 }
-            ]
-        }
-        "#;
+            }
+        }"#;
 
         let json_policy: PolicyDocument = serde_json::from_str(data)?;
         let hcl_policy = json_policy.to_hcl("example_4");
