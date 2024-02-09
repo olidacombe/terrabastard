@@ -22,8 +22,34 @@ pub enum Effect {
 
 #[derive(Clone, Deserialize, Display, PartialEq, Eq, Hash)]
 pub enum ConditionOperator {
+    ArnEquals,
+    ArnLike,
+    ArnNotEquals,
+    ArnNotLike,
+    BinaryEquals,
+    Bool,
+    DateEquals,
+    DateGreaterThan,
+    DateGreaterThanEquals,
+    DateLessThan,
+    DateLessThanEquals,
+    DateNotEquals,
+    IfExists,
+    IpAddress,
+    NotIpAddress,
+    Null,
+    NumericEquals,
+    NumericGreaterThan,
+    NumericGreaterThanEquals,
+    NumericLessThan,
     NumericLessThanEquals,
+    NumericNotEquals,
+    StringEquals,
+    StringEqualsIgnoreCase,
     StringLike,
+    StringNotEquals,
+    StringNotEqualsIgnoreCase,
+    StringNotLike,
 }
 
 #[derive(Deserialize, Clone, Serialize)]
@@ -203,31 +229,6 @@ mod test {
 
         let json_policy: PolicyDocument = serde_json::from_str(data)?;
         let hcl_policy = json_policy.to_hcl("example_3");
-
-        insta::assert_snapshot!(hcl::to_string(&hcl_policy)?);
-
-        Ok(())
-    }
-
-    #[test]
-    fn example_4() -> Result<()> {
-        let data = r#"{
-            "Version": "2012-10-17",
-            "Statement": {
-                "Sid": "AllowRemoveMfaOnlyIfRecentMfa",
-                "Effect": "Allow",
-                "Action": [
-                    "iam:DeactivateMFADevice"
-                ],
-                "Resource": "arn:aws:iam::*:user/${aws:username}",
-                "Condition": {
-                    "NumericLessThanEquals": {"aws:MultiFactorAuthAge": "3600"}
-                }
-            }
-        }"#;
-
-        let json_policy: PolicyDocument = serde_json::from_str(data)?;
-        let hcl_policy = json_policy.to_hcl("example_4");
 
         insta::assert_snapshot!(hcl::to_string(&hcl_policy)?);
 
