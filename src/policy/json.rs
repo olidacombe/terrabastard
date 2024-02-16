@@ -85,8 +85,16 @@ pub enum Principal {
     CanonicalUser,
     Federated,
     Service,
-    // TODO
-    // Star, // "*"
+    #[serde(rename = "*")]
+    Star,
+}
+
+#[derive(Clone, Deserialize, Display)]
+pub enum PrincipalsOrStar {
+    #[serde(rename = "*")]
+    Star,
+    #[serde(untagged)]
+    Proper(HashMap<Principal, OneOrMany<String>>),
 }
 
 #[derive(Deserialize, Clone)]
@@ -97,7 +105,7 @@ pub struct Statement {
     action: OneOrMany<String>,
     resource: Option<OneOrMany<String>>,
     condition: Option<HashMap<ConditionOperator, ConditionOperands>>,
-    principal: Option<HashMap<Principal, OneOrMany<String>>>,
+    principal: Option<PrincipalsOrStar>,
 }
 
 impl From<Statement> for Block {
@@ -114,14 +122,26 @@ impl From<Statement> for Block {
                 .add_attribute(("resources", resources.into_iter().collect::<Vec<String>>()));
         }
         if let Some(principals) = statement.principal {
-            for (ty, identifiers) in principals {
-                let identifiers: Vec<String> = identifiers.into_iter().collect();
-                builder = builder.add_block(
-                    Block::builder("principals")
-                        .add_attribute(("type", ty.to_string()))
-                        .add_attribute(("identifiers", identifiers))
-                        .build(),
-                );
+            match principals {
+                PrincipalsOrStar::Star => {
+                    builder = builder.add_block(
+                        Block::builder("principals")
+                            .add_attribute(("type", "*"))
+                            .add_attribute(("identifiers", vec!["*"]))
+                            .build(),
+                    );
+                }
+                PrincipalsOrStar::Proper(principals) => {
+                    for (ty, identifiers) in principals {
+                        let identifiers: Vec<String> = identifiers.into_iter().collect();
+                        builder = builder.add_block(
+                            Block::builder("principals")
+                                .add_attribute(("type", ty.to_string()))
+                                .add_attribute(("identifiers", identifiers))
+                                .build(),
+                        );
+                    }
+                }
             }
         }
         if let Some(condition) = statement.condition {
@@ -302,6 +322,45 @@ mod test {
 
         let json_policy: PolicyDocument = serde_json::from_str(data)?;
         let hcl_policy = json_policy.to_hcl("example_4");
+
+        insta::assert_snapshot!(hcl::to_string(&hcl_policy)?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn principals_star() -> Result<()> {
+        // This is meant no deal with [a note in the terraform provider docs](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document#principals-and-not_principals)
+        // ```
+        // Even though the IAM Documentation states that "Principal": "*" and "Principal": {"AWS": "*"} are equivalent,
+        // those principal elements have different behavior in some situations,
+        // e.g., IAM Role Trust Policy. To have Terraform render JSON containing "Principal": "*",
+        // use type = "*" and identifiers = ["*"]. To have Terraform render JSON containing "Principal": {"AWS": "*"},
+        // use type = "AWS" and identifiers = ["*"].
+        // ```
+        let data = r#"                                                                                          
+        {                                                                                                   
+            "Version": "2012-10-17",                                                                        
+            "Statement": [                                                                                  
+                {                                                                                           
+                    "Sid": "foo",                                                                           
+                    "Effect": "Allow",                                                                      
+                    "Principal": "*",
+                    "Action": "sts:AssumeRole"                                                              
+                },
+                {                                                                                           
+                    "Sid": "foo",                                                                           
+                    "Effect": "Allow",                                                                      
+                    "Principal": {
+                        "AWS": "*"
+                    },
+                    "Action": "sts:AssumeRole"                                                              
+                }
+            ]                                                                                               
+        }"#;
+
+        let json_policy: PolicyDocument = serde_json::from_str(data)?;
+        let hcl_policy = json_policy.to_hcl("principals_star");
 
         insta::assert_snapshot!(hcl::to_string(&hcl_policy)?);
 
