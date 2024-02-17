@@ -22,8 +22,35 @@ pub enum Effect {
 
 #[derive(Clone, Deserialize, Display, PartialEq, Eq, Hash)]
 pub enum ConditionOperator {
+    ArnEquals,
+    ArnLike,
+    ArnNotEquals,
+    ArnNotLike,
+    BinaryEquals,
+    Bool,
+    DateEquals,
+    DateGreaterThan,
+    DateGreaterThanEquals,
+    DateLessThan,
+    DateLessThanEquals,
+    DateNotEquals,
+    IfExists,
+    IpAddress,
+    NotIpAddress,
+    Null,
+    NumericEquals,
+    NumericGreaterThan,
+    NumericGreaterThanEquals,
+    NumericLessThan,
     NumericLessThanEquals,
+    NumericNotEquals,
+    StringEquals,
+    StringEqualsIgnoreCase,
     StringLike,
+    StringLikeIfExists,
+    StringNotEquals,
+    StringNotEqualsIgnoreCase,
+    StringNotLike,
 }
 
 #[derive(Deserialize, Clone, Serialize)]
@@ -52,14 +79,33 @@ impl<T: Clone> IntoIterator for OneOrMany<T> {
 #[derive(Clone, Deserialize)]
 pub struct ConditionOperands(HashMap<String, OneOrMany<String>>);
 
+#[derive(Clone, Deserialize, Display, PartialEq, Eq, Hash)]
+pub enum Principal {
+    AWS,
+    CanonicalUser,
+    Federated,
+    Service,
+    #[serde(rename = "*")]
+    Star,
+}
+
+#[derive(Clone, Deserialize, Display)]
+pub enum PrincipalsOrStar {
+    #[serde(rename = "*")]
+    Star,
+    #[serde(untagged)]
+    Proper(HashMap<Principal, OneOrMany<String>>),
+}
+
 #[derive(Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Statement {
     sid: Option<String>,
     effect: Effect,
     action: OneOrMany<String>,
-    resource: OneOrMany<String>,
+    resource: Option<OneOrMany<String>>,
     condition: Option<HashMap<ConditionOperator, ConditionOperands>>,
+    principal: Option<PrincipalsOrStar>,
 }
 
 impl From<Statement> for Block {
@@ -71,10 +117,33 @@ impl From<Statement> for Block {
         if let Some(sid) = statement.sid {
             builder = builder.add_attribute(("sid", sid));
         }
-        builder = builder.add_attribute((
-            "resources",
-            statement.resource.into_iter().collect::<Vec<String>>(),
-        ));
+        if let Some(resources) = statement.resource {
+            builder = builder
+                .add_attribute(("resources", resources.into_iter().collect::<Vec<String>>()));
+        }
+        if let Some(principals) = statement.principal {
+            match principals {
+                PrincipalsOrStar::Star => {
+                    builder = builder.add_block(
+                        Block::builder("principals")
+                            .add_attribute(("type", "*"))
+                            .add_attribute(("identifiers", vec!["*"]))
+                            .build(),
+                    );
+                }
+                PrincipalsOrStar::Proper(principals) => {
+                    for (ty, identifiers) in principals {
+                        let identifiers: Vec<String> = identifiers.into_iter().collect();
+                        builder = builder.add_block(
+                            Block::builder("principals")
+                                .add_attribute(("type", ty.to_string()))
+                                .add_attribute(("identifiers", identifiers))
+                                .build(),
+                        );
+                    }
+                }
+            }
+        }
         if let Some(condition) = statement.condition {
             for (operator, operands) in condition {
                 for (variable, values) in operands.0 {
@@ -203,6 +272,95 @@ mod test {
 
         let json_policy: PolicyDocument = serde_json::from_str(data)?;
         let hcl_policy = json_policy.to_hcl("example_3");
+
+        insta::assert_snapshot!(hcl::to_string(&hcl_policy)?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn example_4() -> Result<()> {
+        let data = r#"                                                                                          
+        {                                                                                                   
+            "Version": "2012-10-17",                                                                        
+            "Statement": [                                                                                  
+                {                                                                                           
+                    "Sid": "ec2",                                                                           
+                    "Effect": "Allow",                                                                      
+                    "Principal": {                                                                          
+                      "Service": "ec2.amazonaws.com"                                                        
+                    },                                                                                      
+                    "Action": "sts:AssumeRole"                                                              
+                },                                                                                          
+                {                                                                                           
+                    "Sid": "zebra",                                                                         
+                    "Effect": "Allow",                                                                      
+                    "Principal": {                                                                          
+                        "AWS": [                                                                            
+                            "arn:aws:iam::bar:role/zebra-agents",                                           
+                            "arn:aws:iam::bar:role/zebra-master"                                            
+                        ]                                                                                   
+                    },                                                                                      
+                    "Action": "sts:AssumeRole"                                                              
+                },                                                                                          
+                {                                                                                           
+                    "Effect": "Allow",                                                                      
+                    "Principal": {                                                                          
+                        "Federated": [                                                                      
+                            "arn:aws:iam::baz:oidc-provider/oidc.eks.eu-central-1.amazonaws.com/id/foo"     
+                        ]                                                                                   
+                    },                                                                                      
+                    "Action": "sts:AssumeRoleWithWebIdentity",                                              
+                    "Condition": {                                                                          
+                        "StringLikeIfExists": {                                                             
+                            "oidc.eks.eu-central-1.amazonaws.com/id/foo:*": "*"                             
+                        }                                                                                   
+                    }                                                                                       
+                }                                                                                           
+            ]                                                                                               
+        }"#;
+
+        let json_policy: PolicyDocument = serde_json::from_str(data)?;
+        let hcl_policy = json_policy.to_hcl("example_4");
+
+        insta::assert_snapshot!(hcl::to_string(&hcl_policy)?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn principals_star() -> Result<()> {
+        // This is meant no deal with [a note in the terraform provider docs](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document#principals-and-not_principals)
+        // ```
+        // Even though the IAM Documentation states that "Principal": "*" and "Principal": {"AWS": "*"} are equivalent,
+        // those principal elements have different behavior in some situations,
+        // e.g., IAM Role Trust Policy. To have Terraform render JSON containing "Principal": "*",
+        // use type = "*" and identifiers = ["*"]. To have Terraform render JSON containing "Principal": {"AWS": "*"},
+        // use type = "AWS" and identifiers = ["*"].
+        // ```
+        let data = r#"                                                                                          
+        {                                                                                                   
+            "Version": "2012-10-17",                                                                        
+            "Statement": [                                                                                  
+                {                                                                                           
+                    "Sid": "foo",                                                                           
+                    "Effect": "Allow",                                                                      
+                    "Principal": "*",
+                    "Action": "sts:AssumeRole"                                                              
+                },
+                {                                                                                           
+                    "Sid": "foo",                                                                           
+                    "Effect": "Allow",                                                                      
+                    "Principal": {
+                        "AWS": "*"
+                    },
+                    "Action": "sts:AssumeRole"                                                              
+                }
+            ]                                                                                               
+        }"#;
+
+        let json_policy: PolicyDocument = serde_json::from_str(data)?;
+        let hcl_policy = json_policy.to_hcl("principals_star");
 
         insta::assert_snapshot!(hcl::to_string(&hcl_policy)?);
 

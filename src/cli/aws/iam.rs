@@ -30,6 +30,8 @@ impl Run for Command {
                 let policy_resource = hcl::to_string(&policy_resource)
                     // TODO
                     .unwrap();
+                // FIXME there must be something less cheap and nasty
+                let policy_resource = policy_resource.replace("$$", "$");
                 println!("{policy_resource}");
             }
         }

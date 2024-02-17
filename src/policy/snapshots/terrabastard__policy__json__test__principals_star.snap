@@ -1,0 +1,38 @@
+---
+source: src/policy/json.rs
+expression: "hcl::to_string(&hcl_policy)?"
+---
+resource "aws_iam_policy_document" "principals_star" {
+  version = "2012-10-17"
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "sts:AssumeRole"
+    ]
+    sid = "foo"
+
+    principals {
+      type = "*"
+      identifiers = [
+        "*"
+      ]
+    }
+  }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "sts:AssumeRole"
+    ]
+    sid = "foo"
+
+    principals {
+      type = "AWS"
+      identifiers = [
+        "*"
+      ]
+    }
+  }
+}
+
