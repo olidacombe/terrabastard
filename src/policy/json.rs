@@ -171,7 +171,7 @@ pub struct PolicyDocument {
 
 impl PolicyDocument {
     pub fn to_hcl(&self, name: &str) -> Block {
-        let mut builder = Block::builder("resource")
+        let mut builder = Block::builder("data")
             .add_label("aws_iam_policy_document")
             .add_label(name)
             .add_attribute(("version", format!("{}", &self.version)));
